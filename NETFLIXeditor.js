@@ -18,11 +18,23 @@
 (function () {
     'use strict';
 
+    // ==========================================
+    // 0. DESBLOQUEIO GLOBAL DO PICTURE-IN-PICTURE (BYPASS NETFLIX DRM RESTRICTION)
+    // ==========================================
+    try {
+        Object.defineProperty(HTMLVideoElement.prototype, 'disablePictureInPicture', {
+            get: () => false,
+            set: () => {},
+            configurable: true
+        });
+    } catch (e) {}
+
+
     const DEFAULT_CONFIG = {
         theme: {
             primary: '#0084ff',
             hover: '#66b2ff',
-            menuBg: 'rgba(15, 20, 30, 0.95)'
+            menuBg: 'rgba(13, 17, 23, 0.95)'
         },
         filters: {
             brightness: 100,
@@ -30,42 +42,46 @@
             saturate: 100
         },
         texts: {
-            panelTitle: '⚙️ Netflix Enhanced',
-            saveBtn: 'Aplicar Design',
+            panelTitle: 'Netflix Enhanced',
+            saveBtn: 'Salvar Configurações',
             stretchBtnTitle: 'Esticar Tela (S)',
             pipBtnTitle: 'Picture-in-Picture (P)',
-            volumeSliderTitle: 'Volume (Scroll)',
-            lblColorPrimary: 'Cor Primária',
-            lblColorHover: 'Cor Hover',
-            lblGlow: 'Brilho (Glow) Neon',
-            lblBlueUI: 'Tema Customizado',
-            lblLayout: 'Layout Cinema',
-            lblHouse: 'Bypass Residência',
-            lblStretch: 'Botão Esticar Tela',
-            lblPip: 'Picture-in-Picture (PiP)',
+            volumeSliderTitle: 'Volume',
+            lblColorPrimary: 'Cor de Destaque',
+            lblColorHover: 'Cor Hover / Foco',
+            lblGlow: 'Efeito Neon Glow',
+            lblTheme: 'Tema Netflix Enhanced',
+            lblLayout: 'Layout Cinema Dribbble',
+            lblHouse: 'Bypass Residência Netflix',
+            lblStretch: 'Botão Esticar Tela (S)',
+            lblPip: 'Botão Picture-in-Picture (P)',
             lblShortcuts: 'Atalhos de Teclado ([ ] S P)',
-            lblHoverScale: 'Aumentar no Hover',
-            lblVolumeHoriz: 'Volume Horizontal',
-            lblAutoSkip: 'Auto Pular (Abertura/Fim)',
-            lblSpeedBtn: 'Velocidade Persistente',
-            lblOpRenamer: 'Organizar Temporadas & Eps',
-            lblFiltersSec: '🎬 Filtros de Vídeo (GPU Shaders)',
+            lblGlobalWheel: 'Volume por Scroll em Qualquer Lugar',
+            lblHudToasts: 'Notificações HUD na Tela',
+            lblHoverScale: 'Animação Aumentar no Hover',
+            lblVolumeHoriz: 'Barra de Volume Horizontal',
+            lblAutoSkip: 'Pular Aberturas, Resumos e Créditos',
+            lblSpeedBtn: 'Velocidade de Reprodução Persistente',
+            lblOpRenamer: 'Nomes Reais de Episódios (One Piece)',
+            lblFiltersSec: 'Filtros de Vídeo (Tempo Real)',
             lblBrightness: 'Brilho',
             lblContrast: 'Contraste',
             lblSaturate: 'Saturação',
-            lblTextsSec: '📝 Textos & Legendas',
-            tabStyle: '🎨 Estilo & Filtros',
-            tabFeatures: '⚙️ Recursos',
-            tabTexts: '📝 Textos'
+            lblTextsSec: 'Textos & Legendas',
+            tabStyle: 'Estilo & Vídeo',
+            tabFeatures: 'Recursos',
+            tabTexts: 'Textos'
         },
         features: {
-            enableBlueUI: true,
+            enableTheme: true,
             studioLayout: true,
             spoofEdge: true,
             disableHousehold: true,
             enableStretchBtn: true,
             enablePipBtn: true,
             enableShortcuts: true,
+            enableGlobalVolumeScroll: true,
+            enableHudToasts: true,
             enableGlow: true,
             enableHoverScale: false,
             enableHorizontalVolume: true,
@@ -222,6 +238,7 @@
             [data-uia="player-exit"],
             [data-uia="player-report-problem"],
             .nfb-stretch-btn,
+            #nfb-pip-action,
             [data-uia="control-audio-subtitle"],
             [data-uia^="control-fullscreen"],
             [data-uia="control-episodes"],
@@ -232,6 +249,7 @@
             [data-uia="player-exit"]:hover,
             [data-uia="player-report-problem"]:hover,
             .nfb-stretch-btn:hover,
+            #nfb-pip-action:hover,
             [data-uia="control-audio-subtitle"]:hover,
             [data-uia^="control-fullscreen"]:hover,
             [data-uia="control-episodes"]:hover,
@@ -453,6 +471,8 @@
 
                 /* --- 5. GRUPO DIREITO (posicionamento e tamanho padronizado) --- */
                 [data-uia^="control-fullscreen"]:not(svg),
+                #nfb-pip-action,
+                #nfb-pip-action,
                 #nfb-stretch-action,
                 #nfb-speed-action,
                 [data-uia="control-audio-subtitle"],
@@ -511,6 +531,8 @@
                 ${!appConfig.features.enableHoverScale ? `
                 /* Força scale(1) globalmente para evitar pulo no mouseout e cancela hover de volume */
                 [data-uia^="control-fullscreen"]:not(svg),
+                #nfb-pip-action,
+                #nfb-pip-action,
                 #nfb-stretch-action,
                 #nfb-speed-action,
                 [data-uia="control-audio-subtitle"],
@@ -525,6 +547,7 @@
                 }` : ''}
 
                 [data-uia^="control-fullscreen"]:hover,
+                #nfb-pip-action:hover,
                 #nfb-stretch-action:hover,
                 #nfb-speed-action:hover,
                 [data-uia="control-audio-subtitle"]:hover,
@@ -535,13 +558,14 @@
                     border-radius: 50% !important;
                 }
 
-                /* Posicionamento dinâmico calculado por JS com base de 4% */
+                /* Posicionamento dinâmico ordenado dos botões direitos */
                 [data-uia^="control-fullscreen"]:not(svg) { right: 4% !important; }
-                ${appConfig.features.enableStretchBtn ? `#nfb-stretch-action { right: calc(4% + 48px) !important; }` : ''}
-                ${appConfig.features.enableSpeedBtn ? `#nfb-speed-action { right: calc(4% + ${(appConfig.features.enableStretchBtn ? 48 : 0) + 48}px) !important; }` : ''}
-                [data-uia="control-audio-subtitle"] { right: calc(4% + ${(appConfig.features.enableStretchBtn ? 48 : 0) + (appConfig.features.enableSpeedBtn ? 48 : 0) + 48}px) !important; }
-                [data-uia="control-episodes"] { right: calc(4% + ${(appConfig.features.enableStretchBtn ? 48 : 0) + (appConfig.features.enableSpeedBtn ? 48 : 0) + 96}px) !important; }
-                [data-uia="control-next"] { right: calc(4% + ${(appConfig.features.enableStretchBtn ? 48 : 0) + (appConfig.features.enableSpeedBtn ? 48 : 0) + 144}px) !important; }
+                ${appConfig.features.enablePipBtn ? `#nfb-pip-action { right: calc(4% + 48px) !important; }` : ''}
+                ${appConfig.features.enableStretchBtn ? `#nfb-stretch-action { right: calc(4% + ${(appConfig.features.enablePipBtn ? 48 : 0) + 48}px) !important; }` : ''}
+                ${appConfig.features.enableSpeedBtn ? `#nfb-speed-action { right: calc(4% + ${(appConfig.features.enablePipBtn ? 48 : 0) + (appConfig.features.enableStretchBtn ? 48 : 0) + 48}px) !important; }` : ''}
+                [data-uia="control-audio-subtitle"] { right: calc(4% + ${(appConfig.features.enablePipBtn ? 48 : 0) + (appConfig.features.enableStretchBtn ? 48 : 0) + (appConfig.features.enableSpeedBtn ? 48 : 0) + 48}px) !important; }
+                [data-uia="control-episodes"] { right: calc(4% + ${(appConfig.features.enablePipBtn ? 48 : 0) + (appConfig.features.enableStretchBtn ? 48 : 0) + (appConfig.features.enableSpeedBtn ? 48 : 0) + 96}px) !important; }
+                [data-uia="control-next"] { right: calc(4% + ${(appConfig.features.enablePipBtn ? 48 : 0) + (appConfig.features.enableStretchBtn ? 48 : 0) + (appConfig.features.enableSpeedBtn ? 48 : 0) + 144}px) !important; }
 
                 /* --- 5b. BANDEIRA (REPORT) AFASTADA --- */
                 button.report-problem-button,
@@ -589,105 +613,161 @@
             }
         `;
 
-        /* PAINEL FLUTUANTE DE CONFIGS */
+        /* PAINEL FLUTUANTE DE CONFIGS (NETFLIX ENHANCED MODERN GLASS UI) */
         css += `
             #nfb-panel {
-                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                background: var(--nfb-bg); border: 1px solid var(--nfb-primary);
-                padding: 24px; border-radius: 16px; z-index: 2147483647;
-                color: white; font-family: sans-serif; display: none;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.9), var(--nfb-glow); width: 350px; backdrop-filter: blur(16px);
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.96);
+                background: rgba(14, 18, 27, 0.94); border: 1px solid rgba(255, 255, 255, 0.12);
+                padding: 22px 24px; border-radius: 20px; z-index: 2147483647;
+                color: #f0f4f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                display: none; opacity: 0;
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(255, 255, 255, 0.08), var(--nfb-glow);
+                width: 380px; max-width: 92vw; backdrop-filter: blur(28px) saturate(180%);
+                transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            #nfb-panel.active { display: block; }
-            #nfb-panel h2 { margin: 0 0 16px 0; font-size: 18px; text-align: center; color: var(--nfb-primary); }
+            #nfb-panel.active { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            
+            .nfb-header {
+                display: flex; align-items: center; justify-content: space-between;
+                margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .nfb-title-wrap { display: flex; align-items: center; gap: 8px; }
+            .nfb-title { font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px; margin: 0; }
+            .nfb-badge {
+                font-size: 10px; font-weight: 700; background: var(--nfb-primary); color: #fff;
+                padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+                box-shadow: var(--nfb-glow);
+            }
+            .nfb-close-btn {
+                background: rgba(255, 255, 255, 0.07); border: none; color: #a0aec0;
+                width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                cursor: pointer; font-size: 15px; transition: all 0.2s ease;
+            }
+            .nfb-close-btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; transform: scale(1.08); }
             
             /* Tabs Navigation */
-            .nfb-tabs { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; gap: 4px; }
-            .nfb-tab-btn {
-                background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 8px 12px;
-                font-size: 12px; font-weight: bold; cursor: pointer; border-bottom: 2px solid transparent;
-                transition: color 0.2s, border-color 0.2s; border-radius: 4px 4px 0 0;
+            .nfb-tabs {
+                display: flex; background: rgba(255, 255, 255, 0.05); padding: 4px;
+                border-radius: 12px; margin-bottom: 16px; gap: 4px;
             }
-            .nfb-tab-btn:hover { color: white; }
-            .nfb-tab-btn.active { color: var(--nfb-primary); border-bottom-color: var(--nfb-primary); background: rgba(255,255,255,0.02); }
+            .nfb-tab-btn {
+                flex: 1; background: transparent; border: none; color: #94a3b8; padding: 8px 10px;
+                font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 8px;
+                transition: all 0.2s ease; text-align: center;
+            }
+            .nfb-tab-btn:hover { color: #ffffff; }
+            .nfb-tab-btn.active {
+                background: var(--nfb-primary); color: #ffffff;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3), var(--nfb-glow);
+            }
+            
             .nfb-tab-content { display: none; }
-            .nfb-tab-content.active { display: block; animation: nfbFadeIn 0.25s ease; }
+            .nfb-tab-content.active { display: block; animation: nfbFadeIn 0.2s ease; }
             
             @keyframes nfbFadeIn {
-                from { opacity: 0; transform: translateY(4px); }
+                from { opacity: 0; transform: translateY(3px); }
                 to { opacity: 1; transform: translateY(0); }
             }
 
-            .nfb-group { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; min-height: 24px; }
-            .nfb-group input[type="color"] { width: 44px; height: 32px; border: none; cursor: pointer; background: transparent; border-radius: 4px; }
+            .nfb-group {
+                margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;
+                font-size: 13px; font-weight: 500; padding: 10px 14px;
+                background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 10px; transition: background 0.15s ease, border-color 0.15s ease;
+            }
+            .nfb-group:hover {
+                background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12);
+            }
+            .nfb-group > span { color: #e2e8f0; font-size: 13px; }
+            .nfb-group input[type="color"] {
+                width: 34px; height: 30px; border: 2px solid rgba(255,255,255,0.2);
+                cursor: pointer; background: transparent; border-radius: 8px; padding: 0; outline: none;
+            }
             
             /* Premium Neon Switches */
             .nfb-switch {
-                position: relative; display: inline-block; width: 38px; height: 20px;
+                position: relative; display: inline-block; width: 42px; height: 22px; flex-shrink: 0;
             }
-            .nfb-switch input {
-                opacity: 0; width: 0; height: 0;
-            }
+            .nfb-switch input { opacity: 0; width: 0; height: 0; }
             .nfb-slider {
                 position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-                background-color: rgba(255, 255, 255, 0.15); transition: 0.3s ease; border-radius: 20px;
+                background-color: rgba(255, 255, 255, 0.18); transition: 0.25s ease; border-radius: 22px;
             }
             .nfb-slider:before {
-                position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
-                background-color: white; transition: 0.3s ease; border-radius: 50%;
+                position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+                background-color: white; transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.4);
             }
             .nfb-switch input:checked + .nfb-slider {
                 background-color: var(--nfb-primary);
-                box-shadow: 0 0 8px var(--nfb-primary);
+                box-shadow: var(--nfb-glow);
             }
             .nfb-switch input:checked + .nfb-slider:before {
-                transform: translateX(18px);
+                transform: translateX(20px);
             }
             
             /* Styled Text Inputs */
             .nfb-group input[type="text"] {
-                width: 140px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
-                color: white; border-radius: 6px; padding: 5px 8px; font-size: 11px; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+                width: 150px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255,255,255,0.15);
+                color: #fff; border-radius: 8px; padding: 6px 10px; font-size: 12px; outline: none;
+                transition: border-color 0.2s, box-shadow 0.2s;
             }
             .nfb-group input[type="text"]:focus {
                 border-color: var(--nfb-primary);
-                box-shadow: 0 0 5px var(--nfb-primary);
+                box-shadow: 0 0 8px var(--nfb-primary);
             }
 
-            #nfb-save { width: 100%; padding: 12px; background: var(--nfb-primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 15px; font-size: 14px;}
-            #nfb-save:hover { background: var(--nfb-hover); box-shadow: var(--nfb-glow); }
-            #nfb-toggle-btn {
-                position: fixed; top: 20px; right: 20px; z-index: 2147483647; background: var(--nfb-primary); color: white; border: none;
-                width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 22px; opacity: 0; transition: opacity 0.3s;
+            .nfb-filter-range {
+                display: flex; align-items: center; gap: 10px;
             }
-            #nfb-toggle-btn:hover { opacity: 1 !important; box-shadow: 0 0 15px var(--nfb-primary); }
-            #nfb-toggle-btn:hover { opacity: 1; transform: scale(1.05); box-shadow: var(--nfb-glow); }
-            .nfb-stretch-btn { background: transparent; border: none; color: white; cursor: pointer; padding: 0; opacity: 0.8; display: flex; align-items: center; justify-content: center; }
-            .nfb-stretch-btn:hover { opacity: 1; color: var(--nfb-hover); }
+            .nfb-filter-range input[type="range"] {
+                width: 100px; height: 5px; accent-color: var(--nfb-primary); cursor: pointer;
+            }
+            .nfb-filter-range span.val {
+                min-width: 42px; text-align: right; font-size: 12px; color: var(--nfb-primary); font-weight: 700;
+            }
+
+            #nfb-save {
+                width: 100%; padding: 12px;
+                background: linear-gradient(135deg, var(--nfb-primary) 0%, var(--nfb-hover) 100%);
+                color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700;
+                margin-top: 14px; font-size: 14px; letter-spacing: 0.2px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.5), var(--nfb-glow); transition: all 0.2s ease;
+            }
+            #nfb-save:hover {
+                transform: translateY(-1px); filter: brightness(1.12);
+                box-shadow: 0 6px 22px rgba(0,0,0,0.6), var(--nfb-glow);
+            }
+            #nfb-save:active { transform: translateY(0); }
+            
+            #nfb-toggle-btn {
+                position: fixed; top: 22px; right: 24px; z-index: 2147483647;
+                background: rgba(14, 18, 27, 0.85); backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.16); color: #fff;
+                width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px;
+                opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 4px 18px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+            }
+            #nfb-toggle-btn:hover { opacity: 1 !important; transform: scale(1.08); border-color: var(--nfb-primary); box-shadow: var(--nfb-glow); }
+            
+            .nfb-stretch-btn, #nfb-pip-action {
+                background: transparent; border: none; color: white; cursor: pointer;
+                padding: 0; opacity: 0.85; display: flex; align-items: center; justify-content: center;
+                transition: all 0.2s ease;
+            }
+            .nfb-stretch-btn:hover, #nfb-pip-action:hover { opacity: 1; color: var(--nfb-hover) !important; }
             
             /* Tab scroll areas */
-            .nfb-tab-scroll { max-height: 250px; overflow-y: auto; padding-right: 4px; }
-            .nfb-tab-scroll::-webkit-scrollbar {
-                width: 4px;
-            }
-            .nfb-tab-scroll::-webkit-scrollbar-track {
-                background: rgba(0,0,0,0.1);
-                border-radius: 2px;
-            }
-            .nfb-tab-scroll::-webkit-scrollbar-thumb {
-                background: var(--nfb-primary);
-                border-radius: 2px;
-            }
+            .nfb-tab-scroll { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+            .nfb-tab-scroll::-webkit-scrollbar { width: 5px; }
+            .nfb-tab-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); border-radius: 4px; }
+            .nfb-tab-scroll::-webkit-scrollbar-thumb { background: var(--nfb-primary); border-radius: 4px; }
         `;
-
         styleEl.textContent = css;
     }
 
-    // ==========================================
-    // 3. JAVASCRIPT: THE RED SNIPER
-    // ==========================================
     function overrideEmotionColors() {
-        if (!appConfig.features.enableBlueUI) return;
+        if (!appConfig.features.enableTheme) return;
         // Seleção instantânea sem layout thrashing (dispensa getComputedStyle em loops)
         const candidates = document.querySelectorAll(
             '.watch-video [style*="229, 9, 20"]:not(.nfb-locked), ' +
@@ -852,6 +932,54 @@
         }
     }
 
+    // ==========================================
+    // 3e. AJUSTE GLOBAL DE VOLUME VIA SCROLL DO MOUSE
+    // ==========================================
+    let globalScrollBound = false;
+    function initGlobalVolumeScroll() {
+        if (globalScrollBound) return;
+        globalScrollBound = true;
+
+        window.addEventListener('wheel', (e) => {
+            if (!appConfig.features.enableGlobalVolumeScroll) return;
+
+            // Ignora se estiver rolando em cima do botão de velocidade (ele tem seu próprio ajuste)
+            if (e.target && (e.target.id === 'nfb-speed-action' || e.target.closest('#nfb-speed-action'))) {
+                return;
+            }
+
+            // Ignora se estiver dentro do menu flutuante de configurações
+            if (e.target && e.target.closest('#nfb-panel')) {
+                return;
+            }
+
+            // Ignora se estiver rolando a lista/drawer de episódios da Netflix
+            if (e.target && e.target.closest('.episode-list, [data-uia="episodes-container"], .episodes-pane')) {
+                return;
+            }
+
+            const video = getVideoEl();
+            // Apenas atua quando o player da Netflix está ativo na tela
+            if (!video || !document.querySelector('.watch-video')) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const change = e.deltaY < 0 ? 0.05 : -0.05;
+            let currentVol = video.muted ? 0 : video.volume;
+            let newVol = Math.max(0, Math.min(1, parseFloat((currentVol + change).toFixed(2))));
+
+            video.volume = newVol;
+            video.muted = newVol === 0;
+
+            const slider = document.getElementById('nfb-custom-volume');
+            if (slider) slider.value = newVol;
+
+            showQuickHud(`🔊 Volume: ${Math.round(newVol * 100)}%`);
+        }, { passive: false });
+    }
+
+
     function hideNativeVolumeSlider() {
         if (!appConfig.features.enableHorizontalVolume) return;
         const sliders = document.querySelectorAll('.volume-slider, [data-uia="volume-slider"], [class*="volume-slider"], .watch-video--scrubber-volume-container, [data-uia="watch-video-volume-content"], [data-uia="scrubber"], [data-uia="scrubber-rail"], [data-uia="scrubber-knob"]');
@@ -994,20 +1122,16 @@
         if (!appConfig.features.enablePipBtn || document.getElementById('nfb-pip-action')) return;
         if (!document.pictureInPictureEnabled) return;
 
-        const speedBtn = document.getElementById('nfb-speed-action');
-        const stretchBtn = document.getElementById('nfb-stretch-action');
         const fullscreenBtn = document.querySelector('[data-uia="control-fullscreen-enter"], [data-uia="control-fullscreen-exit"]');
-        const targetBtn = speedBtn || stretchBtn || fullscreenBtn;
-
-        if (targetBtn && targetBtn.parentNode) {
+        if (fullscreenBtn && fullscreenBtn.parentNode) {
             const pipBtn = document.createElement('button');
             pipBtn.id = 'nfb-pip-action';
             pipBtn.className = 'nfb-stretch-btn';
             pipBtn.title = appConfig.texts.pipBtnTitle;
             pipBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; pointer-events: none;">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <rect x="11" y="9" width="9" height="6" rx="1" ry="1" fill="currentColor"></rect>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; pointer-events: none;">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <rect x="12" y="10" width="8" height="6" rx="1" fill="currentColor"></rect>
                 </svg>
             `;
             pipBtn.onclick = (e) => {
@@ -1015,27 +1139,38 @@
                 e.stopPropagation();
                 togglePictureInPicture();
             };
-            targetBtn.parentNode.insertBefore(pipBtn, targetBtn);
+            fullscreenBtn.parentNode.insertBefore(pipBtn, fullscreenBtn);
         }
     }
 
-    function togglePictureInPicture() {
+    async function togglePictureInPicture() {
         const video = getVideoEl();
-        if (!video) return;
+        if (!video) {
+            showQuickHud("Vídeo não encontrado");
+            return;
+        }
+
         try {
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture();
-                showQuickHud("PiP Fechado");
-            } else if (video.requestPictureInPicture) {
-                video.requestPictureInPicture().catch(() => {});
-                showQuickHud("PiP Ativado");
+            video.disablePictureInPicture = false;
+            if (video.hasAttribute('disablepictureinpicture')) {
+                video.removeAttribute('disablepictureinpicture');
             }
-        } catch (e) {}
+
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+                showQuickHud("PiP Desativado");
+            } else if (video.requestPictureInPicture) {
+                await video.requestPictureInPicture();
+                showQuickHud("PiP Ativado");
+            } else {
+                showQuickHud("PiP não suportado");
+            }
+        } catch (err) {
+            console.error('[Netflix Enhanced] Erro ao alternar PiP:', err);
+            showQuickHud("Erro ao abrir PiP");
+        }
     }
 
-    // ==========================================
-    // 4d. FILTROS DE VÍDEO EM TEMPO REAL (GPU SHADERS)
-    // ==========================================
     function applyVideoFilters() {
         const video = getVideoEl();
         if (!video) return;
@@ -1112,6 +1247,7 @@
 
     let hudTimer = null;
     function showQuickHud(msg) {
+        if (!appConfig.features.enableHudToasts) return;
         let hud = document.getElementById('nfb-quick-hud');
         if (!hud) {
             hud = document.createElement('div');
@@ -2315,7 +2451,13 @@
         const panel = document.createElement('div');
         panel.id = 'nfb-panel';
         panel.innerHTML = `
-            <h2>${appConfig.texts.panelTitle}</h2>
+            <div class="nfb-header">
+                <div class="nfb-title-wrap">
+                    <h2 class="nfb-title">✨ ${appConfig.texts.panelTitle}</h2>
+                    <span class="nfb-badge">v19.0</span>
+                </div>
+                <button class="nfb-close-btn" id="nfb-close-btn" title="Fechar">✕</button>
+            </div>
             
             <div class="nfb-tabs">
                 <button class="nfb-tab-btn" id="nfb-btn-style" data-tab="nfb-tab-style">${appConfig.texts.tabStyle}</button>
@@ -2325,14 +2467,14 @@
             
             <!-- Tab: Style & Filters -->
             <div class="nfb-tab-content" id="nfb-tab-style">
+                <div class="nfb-group"><span>${appConfig.texts.lblTheme}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-ui" ${appConfig.features.enableTheme ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblColorPrimary}</span> <input type="color" id="cfg-color" value="${appConfig.theme.primary}"></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblColorHover}</span> <input type="color" id="cfg-hover" value="${appConfig.theme.hover}"></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblGlow}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-glow" ${appConfig.features.enableGlow ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblBlueUI}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-ui" ${appConfig.features.enableBlueUI ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblLayout}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-layout" ${appConfig.features.studioLayout ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblHoverScale}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-hover-scale" ${appConfig.features.enableHoverScale ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 
-                <h3 style="margin: 15px 0 8px 0; font-size: 14px; color: var(--nfb-primary);">${appConfig.texts.lblFiltersSec}</h3>
+                <div style="margin: 14px 0 6px 4px; font-size: 11px; font-weight: 700; color: var(--nfb-primary); text-transform: uppercase; letter-spacing: 0.5px;">${appConfig.texts.lblFiltersSec}</div>
                 <div class="nfb-group">
                     <span>${appConfig.texts.lblBrightness}</span>
                     <div class="nfb-filter-range">
@@ -2358,14 +2500,18 @@
             
             <!-- Tab: Features -->
             <div class="nfb-tab-content" id="nfb-tab-features">
-                <div class="nfb-group"><span>${appConfig.texts.lblHouse}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-house" ${appConfig.features.disableHousehold ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblStretch}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-stretch" ${appConfig.features.enableStretchBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblPip}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-pip" ${appConfig.features.enablePipBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblShortcuts}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-shortcuts" ${appConfig.features.enableShortcuts ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblVolumeHoriz}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-volume-horiz" ${appConfig.features.enableHorizontalVolume ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblAutoSkip}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-autoskip" ${appConfig.features.autoSkip ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblSpeedBtn}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-speed" ${appConfig.features.enableSpeedBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
-                <div class="nfb-group"><span>${appConfig.texts.lblOpRenamer}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-op-renamer" ${appConfig.features.enableOnePieceRenamer ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                <div class="nfb-tab-scroll">
+                    <div class="nfb-group"><span>${appConfig.texts.lblPip}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-pip" ${appConfig.features.enablePipBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblGlobalWheel}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-global-wheel" ${appConfig.features.enableGlobalVolumeScroll ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblHudToasts}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-hud-toasts" ${appConfig.features.enableHudToasts ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblShortcuts}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-shortcuts" ${appConfig.features.enableShortcuts ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblStretch}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-stretch" ${appConfig.features.enableStretchBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblVolumeHoriz}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-volume-horiz" ${appConfig.features.enableHorizontalVolume ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblAutoSkip}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-autoskip" ${appConfig.features.autoSkip ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblSpeedBtn}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-speed" ${appConfig.features.enableSpeedBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblOpRenamer}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-op-renamer" ${appConfig.features.enableOnePieceRenamer ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                    <div class="nfb-group"><span>${appConfig.texts.lblHouse}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-house" ${appConfig.features.disableHousehold ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                </div>
             </div>
             
             <!-- Tab: Texts & Translation -->
@@ -2374,31 +2520,35 @@
                     <div class="nfb-group"><span>Título Painel</span> <input type="text" id="cfg-txt-title" value="${appConfig.texts.panelTitle}"></div>
                     <div class="nfb-group"><span>Botão Salvar</span> <input type="text" id="cfg-txt-save" value="${appConfig.texts.saveBtn}"></div>
                     <div class="nfb-group"><span>Botão Esticar</span> <input type="text" id="cfg-txt-stretch" value="${appConfig.texts.stretchBtnTitle}"></div>
+                    <div class="nfb-group"><span>Botão PiP</span> <input type="text" id="cfg-txt-pip" value="${appConfig.texts.pipBtnTitle}"></div>
                     <div class="nfb-group"><span>Dica Volume</span> <input type="text" id="cfg-txt-volume" value="${appConfig.texts.volumeSliderTitle}"></div>
                     
-                    <div class="nfb-group"><span>Cor Primária</span> <input type="text" id="cfg-lbl-primary" value="${appConfig.texts.lblColorPrimary}"></div>
+                    <div class="nfb-group"><span>Cor Destaque</span> <input type="text" id="cfg-lbl-primary" value="${appConfig.texts.lblColorPrimary}"></div>
                     <div class="nfb-group"><span>Cor Hover</span> <input type="text" id="cfg-lbl-hover" value="${appConfig.texts.lblColorHover}"></div>
                     <div class="nfb-group"><span>Brilho Glow</span> <input type="text" id="cfg-lbl-glow" value="${appConfig.texts.lblGlow}"></div>
-                    <div class="nfb-group"><span>UI Azul</span> <input type="text" id="cfg-lbl-blueui" value="${appConfig.texts.lblBlueUI}"></div>
+                    <div class="nfb-group"><span>Tema Enhanced</span> <input type="text" id="cfg-lbl-theme" value="${appConfig.texts.lblTheme}"></div>
                     <div class="nfb-group"><span>Layout Cinema</span> <input type="text" id="cfg-lbl-layout" value="${appConfig.texts.lblLayout}"></div>
                     <div class="nfb-group"><span>Residência</span> <input type="text" id="cfg-lbl-house" value="${appConfig.texts.lblHouse}"></div>
                     <div class="nfb-group"><span>Botão Esticar</span> <input type="text" id="cfg-lbl-stretch" value="${appConfig.texts.lblStretch}"></div>
+                    <div class="nfb-group"><span>Botão PiP</span> <input type="text" id="cfg-lbl-pip" value="${appConfig.texts.lblPip}"></div>
+                    <div class="nfb-group"><span>Atalhos Teclado</span> <input type="text" id="cfg-lbl-shortcuts" value="${appConfig.texts.lblShortcuts}"></div>
+                    <div class="nfb-group"><span>Scroll Volume</span> <input type="text" id="cfg-lbl-global-wheel" value="${appConfig.texts.lblGlobalWheel}"></div>
+                    <div class="nfb-group"><span>HUD Toasts</span> <input type="text" id="cfg-lbl-hud-toasts" value="${appConfig.texts.lblHudToasts}"></div>
                     <div class="nfb-group"><span>Aumentar Hover</span> <input type="text" id="cfg-lbl-hover-scale" value="${appConfig.texts.lblHoverScale}"></div>
                     <div class="nfb-group"><span>Volume Horiz</span> <input type="text" id="cfg-lbl-vol-horiz" value="${appConfig.texts.lblVolumeHoriz}"></div>
                     <div class="nfb-group"><span>Auto Pular</span> <input type="text" id="cfg-lbl-autoskip" value="${appConfig.texts.lblAutoSkip}"></div>
                     <div class="nfb-group"><span>Velocidade</span> <input type="text" id="cfg-lbl-speed" value="${appConfig.texts.lblSpeedBtn}"></div>
                     <div class="nfb-group"><span>Organizar One Piece</span> <input type="text" id="cfg-lbl-op-renamer" value="${appConfig.texts.lblOpRenamer}"></div>
-                    <div class="nfb-group"><span>Seção Textos</span> <input type="text" id="cfg-lbl-sec" value="${appConfig.texts.lblTextsSec}"></div>
-                    
-                    <div class="nfb-group"><span>Aba Estilo</span> <input type="text" id="cfg-tab-style" value="${appConfig.texts.tabStyle}"></div>
-                    <div class="nfb-group"><span>Aba Recursos</span> <input type="text" id="cfg-tab-features" value="${appConfig.texts.tabFeatures}"></div>
-                    <div class="nfb-group"><span>Aba Textos</span> <input type="text" id="cfg-tab-texts" value="${appConfig.texts.tabTexts}"></div>
                 </div>
             </div>
             
             <button id="nfb-save">${appConfig.texts.saveBtn}</button>
         `;
         document.documentElement.appendChild(panel);
+
+        // Botão de fechar rápido
+        const closeBtn = panel.querySelector('#nfb-close-btn');
+        if (closeBtn) closeBtn.onclick = () => panel.classList.remove('active');
 
         // Aba ativa restaurada do estado global
         const activeTabBtn = panel.querySelector(`[data-tab="${currentActiveTab}"]`);
@@ -2407,7 +2557,6 @@
             activeTabBtn.classList.add('active');
             activeTabContent.classList.add('active');
         } else {
-            // Fallback se não encontrar
             const fallbackBtn = panel.querySelector('.nfb-tab-btn');
             const fallbackContent = panel.querySelector('.nfb-tab-content');
             if (fallbackBtn && fallbackContent) {
@@ -2436,7 +2585,7 @@
                 if (targetContent) {
                     targetContent.classList.add('active');
                 }
-                currentActiveTab = targetId; // Salva o estado globalmente
+                currentActiveTab = targetId;
             };
         });
 
@@ -2444,12 +2593,14 @@
             appConfig.theme.primary = document.getElementById('cfg-color').value;
             appConfig.theme.hover = document.getElementById('cfg-hover').value;
             appConfig.features.enableGlow = document.getElementById('cfg-glow').checked;
-            appConfig.features.enableBlueUI = document.getElementById('cfg-ui').checked;
+            appConfig.features.enableTheme = document.getElementById('cfg-ui').checked;
             appConfig.features.studioLayout = document.getElementById('cfg-layout').checked;
             appConfig.features.disableHousehold = document.getElementById('cfg-house').checked;
             appConfig.features.enableStretchBtn = document.getElementById('cfg-stretch').checked;
             appConfig.features.enablePipBtn = document.getElementById('cfg-pip').checked;
             appConfig.features.enableShortcuts = document.getElementById('cfg-shortcuts').checked;
+            appConfig.features.enableGlobalVolumeScroll = document.getElementById('cfg-global-wheel').checked;
+            appConfig.features.enableHudToasts = document.getElementById('cfg-hud-toasts').checked;
             appConfig.features.enableHoverScale = document.getElementById('cfg-hover-scale').checked;
             appConfig.features.enableHorizontalVolume = document.getElementById('cfg-volume-horiz').checked;
             appConfig.features.autoSkip = document.getElementById('cfg-autoskip').checked;
@@ -2463,21 +2614,25 @@
             appConfig.texts.panelTitle = document.getElementById('cfg-txt-title').value;
             appConfig.texts.saveBtn = document.getElementById('cfg-txt-save').value;
             appConfig.texts.stretchBtnTitle = document.getElementById('cfg-txt-stretch').value;
+            appConfig.texts.pipBtnTitle = document.getElementById('cfg-txt-pip').value;
             appConfig.texts.volumeSliderTitle = document.getElementById('cfg-txt-volume').value;
 
             appConfig.texts.lblColorPrimary = document.getElementById('cfg-lbl-primary').value;
             appConfig.texts.lblColorHover = document.getElementById('cfg-lbl-hover').value;
             appConfig.texts.lblGlow = document.getElementById('cfg-lbl-glow').value;
-            appConfig.texts.lblBlueUI = document.getElementById('cfg-lbl-blueui').value;
+            appConfig.texts.lblTheme = document.getElementById('cfg-lbl-theme').value;
             appConfig.texts.lblLayout = document.getElementById('cfg-lbl-layout').value;
             appConfig.texts.lblHouse = document.getElementById('cfg-lbl-house').value;
             appConfig.texts.lblStretch = document.getElementById('cfg-lbl-stretch').value;
+            appConfig.texts.lblPip = document.getElementById('cfg-lbl-pip').value;
+            appConfig.texts.lblShortcuts = document.getElementById('cfg-lbl-shortcuts').value;
+            appConfig.texts.lblGlobalWheel = document.getElementById('cfg-lbl-global-wheel').value;
+            appConfig.texts.lblHudToasts = document.getElementById('cfg-lbl-hud-toasts').value;
             appConfig.texts.lblHoverScale = document.getElementById('cfg-lbl-hover-scale').value;
             appConfig.texts.lblVolumeHoriz = document.getElementById('cfg-lbl-vol-horiz').value;
             appConfig.texts.lblAutoSkip = document.getElementById('cfg-lbl-autoskip').value;
             appConfig.texts.lblSpeedBtn = document.getElementById('cfg-lbl-speed').value;
             appConfig.texts.lblOpRenamer = document.getElementById('cfg-lbl-op-renamer').value;
-            appConfig.texts.lblTextsSec = document.getElementById('cfg-lbl-sec').value;
 
             appConfig.texts.tabStyle = document.getElementById('cfg-tab-style').value;
             appConfig.texts.tabFeatures = document.getElementById('cfg-tab-features').value;
@@ -2507,6 +2662,7 @@
             initFloatingUI();
         };
     }
+
 
     // ==========================================
     // 5b. AUTO SKIP
@@ -2563,6 +2719,7 @@
         injectMasterCSS();
         initFloatingUI();
         initKeyboardShortcuts();
+        initGlobalVolumeScroll();
         tryInjectVolumeSlider();
         tryInjectStretchButton();
         tryInjectSpeedButton();
