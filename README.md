@@ -16,9 +16,10 @@ Você só precisa instalar o **Loader** uma vez no Tampermonkey. A partir daí, 
 4. Abra ou recarregue a Netflix (`netflix.com`).
 
 > 💡 **Como o Loader funciona:**
-> - Ele executa instantaneamente com cache local (sem atraso na abertura do site).
-> - Em segundo plano, ele checa se houve novos commits neste repositório.
-> - Se houver código novo, ele baixa e atualiza o cache para a próxima execução.
+> - **Zero Delay:** Executa instantaneamente com cache local armazenado no Tampermonkey.
+> - **Auto-Update com Recarregamento Inteligente:** Em segundo plano, busca novidades no GitHub. Ao detectar uma nova versão, salva o cache e **recarrega a Netflix automaticamente** com notificação HUD em tela!
+> - **Atalho de Forçar Atualização:** Pressione `Ctrl + Alt + U` na Netflix a qualquer momento para limpar o cache e buscar a versão mais recente imediatamente.
+> - **Botão no Menu:** No painel do Netflix Enhanced, há um botão dedicado: *"🔄 Sincronizar com GitHub / Forçar Atualização"*.
 
 ---
 

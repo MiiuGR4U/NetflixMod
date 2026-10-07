@@ -2539,10 +2539,14 @@
                     <div class="nfb-group"><span>Auto Pular</span> <input type="text" id="cfg-lbl-autoskip" value="${appConfig.texts.lblAutoSkip}"></div>
                     <div class="nfb-group"><span>Velocidade</span> <input type="text" id="cfg-lbl-speed" value="${appConfig.texts.lblSpeedBtn}"></div>
                     <div class="nfb-group"><span>Organizar One Piece</span> <input type="text" id="cfg-lbl-op-renamer" value="${appConfig.texts.lblOpRenamer}"></div>
+                    <div class="nfb-group"><span>Aba Estilo</span> <input type="text" id="cfg-tab-style" value="${appConfig.texts.tabStyle}"></div>
+                    <div class="nfb-group"><span>Aba Recursos</span> <input type="text" id="cfg-tab-features" value="${appConfig.texts.tabFeatures}"></div>
+                    <div class="nfb-group"><span>Aba Textos</span> <input type="text" id="cfg-tab-texts" value="${appConfig.texts.tabTexts}"></div>
                 </div>
             </div>
             
             <button id="nfb-save">${appConfig.texts.saveBtn}</button>
+            <button id="nfb-sync-github" style="width: 100%; margin-top: 8px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 7px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.color='#fff';this.style.borderColor='var(--nfb-primary)'" onmouseout="this.style.color='rgba(255,255,255,0.7)';this.style.borderColor='rgba(255,255,255,0.12)'">🔄 Sincronizar com GitHub / Forçar Atualização</button>
         `;
         document.documentElement.appendChild(panel);
 
@@ -2634,9 +2638,9 @@
             appConfig.texts.lblSpeedBtn = document.getElementById('cfg-lbl-speed').value;
             appConfig.texts.lblOpRenamer = document.getElementById('cfg-lbl-op-renamer').value;
 
-            appConfig.texts.tabStyle = document.getElementById('cfg-tab-style').value;
-            appConfig.texts.tabFeatures = document.getElementById('cfg-tab-features').value;
-            appConfig.texts.tabTexts = document.getElementById('cfg-tab-texts').value;
+            appConfig.texts.tabStyle = document.getElementById('cfg-tab-style')?.value || appConfig.texts.tabStyle;
+            appConfig.texts.tabFeatures = document.getElementById('cfg-tab-features')?.value || appConfig.texts.tabFeatures;
+            appConfig.texts.tabTexts = document.getElementById('cfg-tab-texts')?.value || appConfig.texts.tabTexts;
 
             GM_setValue('nfb_theme', appConfig.theme);
             GM_setValue('nfb_features', appConfig.features);
@@ -2661,6 +2665,22 @@
             document.getElementById('nfb-toggle-btn').remove();
             initFloatingUI();
         };
+
+        const syncBtn = document.getElementById('nfb-sync-github');
+        if (syncBtn) {
+            syncBtn.onclick = () => {
+                try {
+                    GM_setValue('NETFLIX_MOD_CACHED_PAYLOAD', null);
+                    GM_setValue('NETFLIX_MOD_LAST_CHECK', 0);
+                } catch (_) {}
+                if (typeof unsafeWindow !== 'undefined' && unsafeWindow.__updateNetflixEnhanced) {
+                    unsafeWindow.__updateNetflixEnhanced(true);
+                } else {
+                    showToast('🔄 Cache limpo! Recarregando página...');
+                    setTimeout(() => location.reload(), 800);
+                }
+            };
+        }
     }
 
 
