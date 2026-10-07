@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Netflix Blue UI - 100% Polish
+// @name         Netflix Enhanced
 // @namespace    https://github.com/MiiuGR4U/NetflixMod
-// @version      18.0
-// @description  Correção final: Pular Abertura, Volume horizontal, Play centralizado, Timelines azuis, Velocidade persistente e Nomes reais dos episódios sem delay.
+// @version      19.0
+// @description  Suíte completa para Netflix: Picture-in-Picture, Filtros de Vídeo, Atalhos de Teclado, Pular Abertura/Resumo/Créditos, Volume horizontal, Playback persistente e Nomes reais dos episódios com Zero Delay.
 // @author       MiiuGR4U
 // @match        *://*.netflix.com/*
 // @run-at       document-start
@@ -24,25 +24,37 @@
             hover: '#66b2ff',
             menuBg: 'rgba(15, 20, 30, 0.95)'
         },
+        filters: {
+            brightness: 100,
+            contrast: 100,
+            saturate: 100
+        },
         texts: {
-            panelTitle: '⚙️ Blue UI (Final Polish)',
+            panelTitle: '⚙️ Netflix Enhanced',
             saveBtn: 'Aplicar Design',
-            stretchBtnTitle: 'Esticar Tela',
-            volumeSliderTitle: 'Volume',
+            stretchBtnTitle: 'Esticar Tela (S)',
+            pipBtnTitle: 'Picture-in-Picture (P)',
+            volumeSliderTitle: 'Volume (Scroll)',
             lblColorPrimary: 'Cor Primária',
             lblColorHover: 'Cor Hover',
             lblGlow: 'Brilho (Glow) Neon',
-            lblBlueUI: 'UI Azul Dinâmica',
-            lblLayout: 'Layout Dribbble (Cinema)',
+            lblBlueUI: 'Tema Customizado',
+            lblLayout: 'Layout Cinema',
             lblHouse: 'Bypass Residência',
             lblStretch: 'Botão Esticar Tela',
+            lblPip: 'Picture-in-Picture (PiP)',
+            lblShortcuts: 'Atalhos de Teclado ([ ] S P)',
             lblHoverScale: 'Aumentar no Hover',
             lblVolumeHoriz: 'Volume Horizontal',
-            lblAutoSkip: 'Auto Pular (Abertura/Resumo)',
+            lblAutoSkip: 'Auto Pular (Abertura/Fim)',
             lblSpeedBtn: 'Velocidade Persistente',
             lblOpRenamer: 'Organizar Temporadas & Eps',
+            lblFiltersSec: '🎬 Filtros de Vídeo (GPU Shaders)',
+            lblBrightness: 'Brilho',
+            lblContrast: 'Contraste',
+            lblSaturate: 'Saturação',
             lblTextsSec: '📝 Textos & Legendas',
-            tabStyle: '🎨 Estilo',
+            tabStyle: '🎨 Estilo & Filtros',
             tabFeatures: '⚙️ Recursos',
             tabTexts: '📝 Textos'
         },
@@ -52,6 +64,8 @@
             spoofEdge: true,
             disableHousehold: true,
             enableStretchBtn: true,
+            enablePipBtn: true,
+            enableShortcuts: true,
             enableGlow: true,
             enableHoverScale: false,
             enableHorizontalVolume: true,
@@ -63,9 +77,18 @@
 
     let appConfig = {
         theme: { ...DEFAULT_CONFIG.theme, ...(GM_getValue('nfb_theme', {})) },
+        filters: { ...DEFAULT_CONFIG.filters, ...(GM_getValue('nfb_filters', {})) },
         texts: { ...DEFAULT_CONFIG.texts, ...(GM_getValue('nfb_texts', {})) },
         features: { ...DEFAULT_CONFIG.features, ...(GM_getValue('nfb_features', {})) }
     };
+
+    // Memoização de alta performance do elemento <video>
+    let cachedVideo = null;
+    function getVideoEl() {
+        if (cachedVideo && cachedVideo.isConnected) return cachedVideo;
+        cachedVideo = document.querySelector('video');
+        return cachedVideo;
+    }
 
     let currentActiveTab = 'nfb-tab-style';
 
@@ -146,6 +169,45 @@
                 margin: 0 !important;
             }
             [data-uia="timeline-knob"] * { display: none !important; }
+
+            /* --- HUD TOAST RÁPIDO PARA ATALHOS --- */
+            #nfb-quick-hud {
+                position: fixed;
+                top: 80px;
+                right: 40px;
+                background: rgba(15, 20, 30, 0.88);
+                backdrop-filter: blur(8px);
+                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 17px;
+                font-weight: 700;
+                padding: 10px 22px;
+                border-radius: 8px;
+                border: 1px solid var(--nfb-primary);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5), var(--nfb-glow);
+                z-index: 2147483647;
+                pointer-events: none;
+                opacity: 0;
+                transform: translateY(-8px);
+                transition: opacity 0.18s ease, transform 0.18s ease;
+            }
+            #nfb-quick-hud.nfb-hud-visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .nfb-filter-range {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .nfb-filter-range span.val {
+                min-width: 42px;
+                text-align: right;
+                font-size: 13px;
+                color: var(--nfb-primary);
+                font-weight: 600;
+            }
 
             /* --- HOVER GLOBAL & FORMA REDONDA --- */
             [data-uia^="control-"]:hover,
@@ -626,24 +688,33 @@
     // ==========================================
     function overrideEmotionColors() {
         if (!appConfig.features.enableBlueUI) return;
-        const candidates = document.querySelectorAll('.watch-video div:not(.nfb-locked), .episode-list div:not(.nfb-locked)');
-        candidates.forEach(el => {
-            const bg = el.style.backgroundColor || window.getComputedStyle(el).backgroundColor;
-            const bgStr = bg.replace(/\s/g, '');
-            if (bgStr === 'rgb(229,9,20)' || bgStr === 'rgb(216,31,38)' || bgStr.includes('#e50914') || bgStr === 'red') {
-                el.style.setProperty('background-color', 'var(--nfb-primary)', 'important');
-                el.style.setProperty('background', 'var(--nfb-primary)', 'important');
-                el.style.setProperty('background-image', 'none', 'important');
-                el.classList.add('nfb-locked');
-            }
-        });
+        // Seleção instantânea sem layout thrashing (dispensa getComputedStyle em loops)
+        const candidates = document.querySelectorAll(
+            '.watch-video [style*="229, 9, 20"]:not(.nfb-locked), ' +
+            '.watch-video [style*="229,9,20"]:not(.nfb-locked), ' +
+            '.watch-video [style*="216, 31, 38"]:not(.nfb-locked), ' +
+            '.watch-video [style*="#e50914"]:not(.nfb-locked), ' +
+            '.episode-list [style*="229, 9, 20"]:not(.nfb-locked), ' +
+            '.episode-list [style*="229,9,20"]:not(.nfb-locked)'
+        );
+        for (let i = 0; i < candidates.length; i++) {
+            const el = candidates[i];
+            el.style.setProperty('background-color', 'var(--nfb-primary)', 'important');
+            el.style.setProperty('background', 'var(--nfb-primary)', 'important');
+            el.style.setProperty('background-image', 'none', 'important');
+            el.classList.add('nfb-locked');
+        }
     }
 
     // ==========================================
     // 3b. NEUTRALIZA OVERLAYS QUE BLOQUEIAM BOTÕES
     // ==========================================
+    let lastNeutralizeTime = 0;
     function neutralizeBlockers() {
         if (!appConfig.features.studioLayout) return;
+        const now = Date.now();
+        if (now - lastNeutralizeTime < 1500) return;
+        lastNeutralizeTime = now;
 
         const buttonSelectors = [
             '[data-uia^="control-play-pause"]',
@@ -703,11 +774,11 @@
             slider.title = appConfig.texts.volumeSliderTitle;
 
             // Defina o valor inicial
-            const video = document.querySelector('video');
+            const video = getVideoEl();
             slider.value = video ? (video.muted ? 0 : video.volume) : 1;
 
             slider.oninput = (e) => {
-                const vid = document.querySelector('video');
+                const vid = getVideoEl();
                 if (vid) {
                     vid.volume = parseFloat(e.target.value);
                     vid.muted = vid.volume === 0;
@@ -736,7 +807,7 @@
 
             // Suporte a ajuste de volume por scroll (mousewheel) sobre toda a área de controle de volume
             volumeWrapper.addEventListener('wheel', (e) => {
-                const vid = document.querySelector('video');
+                const vid = getVideoEl();
                 if (vid) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -761,7 +832,7 @@
 
     function syncCustomVolume() {
         const slider = document.getElementById('nfb-custom-volume');
-        const video = document.querySelector('video');
+        const video = getVideoEl();
         if (slider && video) {
             // Atualiza slider se houver mudança externa (atalhos de teclado, etc)
             if (document.activeElement !== slider) {
@@ -772,7 +843,7 @@
                 video.dataset.nfbVolumeBound = "true";
                 video.addEventListener('volumechange', () => {
                     const activeSlider = document.getElementById('nfb-custom-volume');
-                    const activeVideo = document.querySelector('video');
+                    const activeVideo = getVideoEl();
                     if (activeSlider && activeVideo && document.activeElement !== activeSlider) {
                         activeSlider.value = activeVideo.muted ? 0 : activeVideo.volume;
                     }
@@ -815,7 +886,7 @@
             `;
             stretchBtn.onclick = (e) => {
                 e.preventDefault(); e.stopPropagation();
-                const video = document.querySelector('video');
+                const video = getVideoEl();
                 if (video) video.style.objectFit = video.style.objectFit === "fill" ? "contain" : "fill";
             };
             fullscreenBtn.parentNode.insertBefore(stretchBtn, fullscreenBtn);
@@ -834,7 +905,7 @@
     function applyPlaybackRate() {
         if (!appConfig.features.enableSpeedBtn || isApplyingSpeed) return;
         const targetRate = speeds[currentSpeedIndex];
-        const video = document.querySelector('video');
+        const video = getVideoEl();
 
         if (video) {
             // Nunca força playbackRate durante seek/carregamento de intro
@@ -893,11 +964,166 @@
                 const newRate = speeds[currentSpeedIndex];
                 GM_setValue('nfb_playback_rate', newRate);
                 applyPlaybackRate();
+                showQuickHud(`${newRate}x`);
             };
+
+            // Ajuste fluido da velocidade via scroll do mouse
+            speedBtn.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.deltaY < 0) {
+                    currentSpeedIndex = Math.min(speeds.length - 1, currentSpeedIndex + 1);
+                } else {
+                    currentSpeedIndex = Math.max(0, currentSpeedIndex - 1);
+                }
+                const newRate = speeds[currentSpeedIndex];
+                GM_setValue('nfb_playback_rate', newRate);
+                applyPlaybackRate();
+                showQuickHud(`${newRate}x`);
+            }, { passive: false });
 
             targetBtn.parentNode.insertBefore(speedBtn, stretchBtn || fullscreenBtn);
             applyPlaybackRate();
         }
+    }
+
+    // ==========================================
+    // 4c. INJEÇÃO DO BOTÃO PICTURE-IN-PICTURE (PIP)
+    // ==========================================
+    function tryInjectPipButton() {
+        if (!appConfig.features.enablePipBtn || document.getElementById('nfb-pip-action')) return;
+        if (!document.pictureInPictureEnabled) return;
+
+        const speedBtn = document.getElementById('nfb-speed-action');
+        const stretchBtn = document.getElementById('nfb-stretch-action');
+        const fullscreenBtn = document.querySelector('[data-uia="control-fullscreen-enter"], [data-uia="control-fullscreen-exit"]');
+        const targetBtn = speedBtn || stretchBtn || fullscreenBtn;
+
+        if (targetBtn && targetBtn.parentNode) {
+            const pipBtn = document.createElement('button');
+            pipBtn.id = 'nfb-pip-action';
+            pipBtn.className = 'nfb-stretch-btn';
+            pipBtn.title = appConfig.texts.pipBtnTitle;
+            pipBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px; height:22px; pointer-events: none;">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <rect x="11" y="9" width="9" height="6" rx="1" ry="1" fill="currentColor"></rect>
+                </svg>
+            `;
+            pipBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                togglePictureInPicture();
+            };
+            targetBtn.parentNode.insertBefore(pipBtn, targetBtn);
+        }
+    }
+
+    function togglePictureInPicture() {
+        const video = getVideoEl();
+        if (!video) return;
+        try {
+            if (document.pictureInPictureElement) {
+                document.exitPictureInPicture();
+                showQuickHud("PiP Fechado");
+            } else if (video.requestPictureInPicture) {
+                video.requestPictureInPicture().catch(() => {});
+                showQuickHud("PiP Ativado");
+            }
+        } catch (e) {}
+    }
+
+    // ==========================================
+    // 4d. FILTROS DE VÍDEO EM TEMPO REAL (GPU SHADERS)
+    // ==========================================
+    function applyVideoFilters() {
+        const video = getVideoEl();
+        if (!video) return;
+        const b = appConfig.filters.brightness ?? 100;
+        const c = appConfig.filters.contrast ?? 100;
+        const s = appConfig.filters.saturate ?? 100;
+        if (b === 100 && c === 100 && s === 100) {
+            if (video.style.filter) video.style.filter = '';
+        } else {
+            const filterStr = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
+            if (video.style.filter !== filterStr) {
+                video.style.filter = filterStr;
+            }
+        }
+    }
+
+    // ==========================================
+    // 4e. ATALHOS RÁPIDOS DE TECLADO & HUD
+    // ==========================================
+    let shortcutsInitialized = false;
+    function initKeyboardShortcuts() {
+        if (shortcutsInitialized) return;
+        shortcutsInitialized = true;
+
+        window.addEventListener('keydown', (e) => {
+            if (!appConfig.features.enableShortcuts) return;
+
+            // Ignora se estiver digitando em campos de texto / busca
+            const tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable || e.target.closest('[contenteditable="true"]')) {
+                return;
+            }
+
+            const key = e.key;
+
+            // [ : Diminuir velocidade
+            if (key === '[') {
+                e.preventDefault();
+                currentSpeedIndex = Math.max(0, currentSpeedIndex - 1);
+                const newRate = speeds[currentSpeedIndex];
+                GM_setValue('nfb_playback_rate', newRate);
+                applyPlaybackRate();
+                showQuickHud(`${newRate}x`);
+            }
+            // ] : Aumentar velocidade
+            else if (key === ']') {
+                e.preventDefault();
+                currentSpeedIndex = Math.min(speeds.length - 1, currentSpeedIndex + 1);
+                const newRate = speeds[currentSpeedIndex];
+                GM_setValue('nfb_playback_rate', newRate);
+                applyPlaybackRate();
+                showQuickHud(`${newRate}x`);
+            }
+            // s ou S : Stretch (esticar tela)
+            else if (key === 's' || key === 'S') {
+                if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                    const video = getVideoEl();
+                    if (video) {
+                        video.style.objectFit = video.style.objectFit === "fill" ? "contain" : "fill";
+                        showQuickHud(video.style.objectFit === "fill" ? "Esticado (Fill)" : "Original (Contain)");
+                    }
+                }
+            }
+            // p ou P : Picture-in-Picture
+            else if (key === 'p' || key === 'P') {
+                if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                    togglePictureInPicture();
+                }
+            }
+        });
+    }
+
+    let hudTimer = null;
+    function showQuickHud(msg) {
+        let hud = document.getElementById('nfb-quick-hud');
+        if (!hud) {
+            hud = document.createElement('div');
+            hud.id = 'nfb-quick-hud';
+            document.documentElement.appendChild(hud);
+        }
+        hud.textContent = msg;
+        hud.classList.add('nfb-hud-visible');
+        clearTimeout(hudTimer);
+        hudTimer = setTimeout(() => {
+            hud.classList.remove('nfb-hud-visible');
+        }, 1200);
     }
 
     // ==========================================
@@ -2001,6 +2227,7 @@
                                 );
                             }
                             if (el.setAttribute) el.setAttribute('title', customTitle);
+                            el.dataset.nfbEpRenamed = String(epNum);
                         }
                     }
                 }
@@ -2028,6 +2255,7 @@
                                 el.setAttribute('title', customTitle);
                             }
                         }
+                        el.dataset.nfbEpRenamed = String(epNum);
                     }
                 }
             }
@@ -2041,12 +2269,17 @@
         renameVideoTitle();
         setupVideoTitleObserver();
 
-        // Varre absolutamente qualquer elemento do documento que contenha "Epis"
+        // Seletor cirúrgico e de altíssima performance: foca apenas nas áreas reais de episódios
         const candidates = document.querySelectorAll(
-            'span, p, div, h3, h4, a, button, li, [class*="title"], [class*="episode"], [data-uia*="episode"], [data-uia*="title"]'
+            '[data-uia="video-title"] span, ' +
+            '[data-uia*="episode"] span, [data-uia*="episode"] p, [data-uia*="episode"] h3, [data-uia*="episode"] h4, ' +
+            '.titleCard-title_text, .titleCard-title, .titleCard-synopsis, .episode-title, ' +
+            '.episodes-pane span, .episodes-pane h4, .episodes-pane p, ' +
+            '[class*="episode"] span, [class*="episode"] p, [class*="episode"] h3, [class*="episode"] h4'
         );
         for (let i = 0; i < candidates.length; i++) {
             const el = candidates[i];
+            if (el.dataset.nfbEpRenamed) continue; // Pula nós já cacheados em O(1)
             if (el.textContent && el.textContent.includes('Epis')) {
                 replaceEpisodeTextInElement(el);
             }
@@ -2090,7 +2323,7 @@
                 <button class="nfb-tab-btn" id="nfb-btn-texts" data-tab="nfb-tab-texts">${appConfig.texts.tabTexts}</button>
             </div>
             
-            <!-- Tab: Style -->
+            <!-- Tab: Style & Filters -->
             <div class="nfb-tab-content" id="nfb-tab-style">
                 <div class="nfb-group"><span>${appConfig.texts.lblColorPrimary}</span> <input type="color" id="cfg-color" value="${appConfig.theme.primary}"></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblColorHover}</span> <input type="color" id="cfg-hover" value="${appConfig.theme.hover}"></div>
@@ -2098,12 +2331,37 @@
                 <div class="nfb-group"><span>${appConfig.texts.lblBlueUI}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-ui" ${appConfig.features.enableBlueUI ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblLayout}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-layout" ${appConfig.features.studioLayout ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblHoverScale}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-hover-scale" ${appConfig.features.enableHoverScale ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                
+                <h3 style="margin: 15px 0 8px 0; font-size: 14px; color: var(--nfb-primary);">${appConfig.texts.lblFiltersSec}</h3>
+                <div class="nfb-group">
+                    <span>${appConfig.texts.lblBrightness}</span>
+                    <div class="nfb-filter-range">
+                        <input type="range" id="cfg-filter-brightness" min="60" max="150" step="5" value="${appConfig.filters.brightness}">
+                        <span class="val" id="val-brightness">${appConfig.filters.brightness}%</span>
+                    </div>
+                </div>
+                <div class="nfb-group">
+                    <span>${appConfig.texts.lblContrast}</span>
+                    <div class="nfb-filter-range">
+                        <input type="range" id="cfg-filter-contrast" min="60" max="150" step="5" value="${appConfig.filters.contrast}">
+                        <span class="val" id="val-contrast">${appConfig.filters.contrast}%</span>
+                    </div>
+                </div>
+                <div class="nfb-group">
+                    <span>${appConfig.texts.lblSaturate}</span>
+                    <div class="nfb-filter-range">
+                        <input type="range" id="cfg-filter-saturate" min="0" max="200" step="10" value="${appConfig.filters.saturate}">
+                        <span class="val" id="val-saturate">${appConfig.filters.saturate}%</span>
+                    </div>
+                </div>
             </div>
             
             <!-- Tab: Features -->
             <div class="nfb-tab-content" id="nfb-tab-features">
                 <div class="nfb-group"><span>${appConfig.texts.lblHouse}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-house" ${appConfig.features.disableHousehold ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblStretch}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-stretch" ${appConfig.features.enableStretchBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                <div class="nfb-group"><span>${appConfig.texts.lblPip}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-pip" ${appConfig.features.enablePipBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
+                <div class="nfb-group"><span>${appConfig.texts.lblShortcuts}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-shortcuts" ${appConfig.features.enableShortcuts ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblVolumeHoriz}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-volume-horiz" ${appConfig.features.enableHorizontalVolume ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblAutoSkip}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-autoskip" ${appConfig.features.autoSkip ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
                 <div class="nfb-group"><span>${appConfig.texts.lblSpeedBtn}</span> <label class="nfb-switch"><input type="checkbox" id="cfg-speed" ${appConfig.features.enableSpeedBtn ? 'checked' : ''}><span class="nfb-slider"></span></label></div>
@@ -2158,6 +2416,14 @@
             }
         }
 
+        // Atualização em tempo real das etiquetas de filtros de vídeo
+        const bSlider = panel.querySelector('#cfg-filter-brightness');
+        const cSlider = panel.querySelector('#cfg-filter-contrast');
+        const sSlider = panel.querySelector('#cfg-filter-saturate');
+        if (bSlider) bSlider.oninput = (e) => { panel.querySelector('#val-brightness').textContent = `${e.target.value}%`; };
+        if (cSlider) cSlider.oninput = (e) => { panel.querySelector('#val-contrast').textContent = `${e.target.value}%`; };
+        if (sSlider) sSlider.oninput = (e) => { panel.querySelector('#val-saturate').textContent = `${e.target.value}%`; };
+
         // Lógica de click das abas
         panel.querySelectorAll('.nfb-tab-btn').forEach(tabBtn => {
             tabBtn.onclick = () => {
@@ -2182,11 +2448,17 @@
             appConfig.features.studioLayout = document.getElementById('cfg-layout').checked;
             appConfig.features.disableHousehold = document.getElementById('cfg-house').checked;
             appConfig.features.enableStretchBtn = document.getElementById('cfg-stretch').checked;
+            appConfig.features.enablePipBtn = document.getElementById('cfg-pip').checked;
+            appConfig.features.enableShortcuts = document.getElementById('cfg-shortcuts').checked;
             appConfig.features.enableHoverScale = document.getElementById('cfg-hover-scale').checked;
             appConfig.features.enableHorizontalVolume = document.getElementById('cfg-volume-horiz').checked;
             appConfig.features.autoSkip = document.getElementById('cfg-autoskip').checked;
             appConfig.features.enableSpeedBtn = document.getElementById('cfg-speed').checked;
             appConfig.features.enableOnePieceRenamer = document.getElementById('cfg-op-renamer').checked;
+
+            appConfig.filters.brightness = parseInt(document.getElementById('cfg-filter-brightness').value);
+            appConfig.filters.contrast = parseInt(document.getElementById('cfg-filter-contrast').value);
+            appConfig.filters.saturate = parseInt(document.getElementById('cfg-filter-saturate').value);
 
             appConfig.texts.panelTitle = document.getElementById('cfg-txt-title').value;
             appConfig.texts.saveBtn = document.getElementById('cfg-txt-save').value;
@@ -2213,6 +2485,7 @@
 
             GM_setValue('nfb_theme', appConfig.theme);
             GM_setValue('nfb_features', appConfig.features);
+            GM_setValue('nfb_filters', appConfig.filters);
             GM_setValue('nfb_texts', appConfig.texts);
 
             if (!appConfig.features.enableHorizontalVolume) {
@@ -2226,6 +2499,7 @@
 
             document.querySelectorAll('.nfb-locked').forEach(el => el.classList.remove('nfb-locked'));
             overrideEmotionColors();
+            applyVideoFilters();
 
             // Destrói e reconstrói o painel e o botão para refletir novas strings
             document.getElementById('nfb-panel').remove();
@@ -2261,23 +2535,23 @@
         const video = document.querySelector('video');
         if (video && video.seeking) return; // Aguarda o seek terminar antes de qualquer outra ação
 
-        const btn = document.querySelector('[data-uia="player-skip-intro"], [data-uia="player-skip-recap"]');
+        // Pula introdução, resumo e o botão de contagem regressiva para o próximo episódio
+        const btn = document.querySelector(
+            '[data-uia="player-skip-intro"], [data-uia="player-skip-recap"], ' +
+            '[data-uia="next-episode-seamless-button"], [data-uia="next-episode-seamless-button-draining"]'
+        );
         if (btn) {
-            if (btn.dataset.nfbAutoSkipped) return; // Não clica duas vezes no mesmo botão
+            if (btn.dataset.nfbAutoSkipped) return;
 
-            const rect = btn.getBoundingClientRect();
-            const style = window.getComputedStyle(btn);
-            const isVisible = rect.width > 0 && rect.height > 0
-                && style.display !== 'none'
-                && style.visibility !== 'hidden'
-                && style.opacity !== '0';
-
+            // Verificação rápida sem forçar layout reflow com getComputedStyle
+            const isVisible = btn.offsetParent !== null || btn.offsetWidth > 0;
             if (isVisible) {
                 btn.dataset.nfbAutoSkipped = "true";
                 lastAutoSkipTime = now;
                 try {
                     btn.click();
-                } catch (e) { }
+                    showQuickHud("Auto Skip Executado");
+                } catch (e) {}
             }
         }
     }
@@ -2288,40 +2562,50 @@
     function initApp() {
         injectMasterCSS();
         initFloatingUI();
+        initKeyboardShortcuts();
         tryInjectVolumeSlider();
         tryInjectStretchButton();
         tryInjectSpeedButton();
+        tryInjectPipButton();
         hideNativeVolumeSlider();
         fetchOnePieceEpisodes();
         renameOnePieceEpisodes();
         applyPlaybackRate();
+        applyVideoFilters();
 
         function runPeriodicChecks() {
             tryInjectVolumeSlider();
             tryInjectStretchButton();
             tryInjectSpeedButton();
+            tryInjectPipButton();
             syncCustomVolume();
             hideNativeVolumeSlider();
             overrideEmotionColors();
             checkAutoSkip();
             renameOnePieceEpisodes();
             applyPlaybackRate();
+            applyVideoFilters();
         }
 
-        // Intervalo rápido a cada 250ms para manter os nomes dos episódios sempre ativos
+        // Neutralizador de overlays throttled a cada 1.5s para evitar reflows constantes
         setInterval(() => {
             neutralizeBlockers();
-            runPeriodicChecks();
-        }, 250);
+        }, 1500);
 
-        // Observer inteligente com resposta rápida de 50ms (SEM recursão de style/class)
-        let mutationDebounceTimer = null;
-        const observer = new MutationObserver(() => {
-            if (mutationDebounceTimer) return;
-            mutationDebounceTimer = setTimeout(() => {
-                mutationDebounceTimer = null;
+        // MOTOR DE ULTRA-PERFORMANCE (0ms a 1ms REAL SINCRONIZADO COM A GPU)
+        // Substitui o setTimeout clamped por requestAnimationFrame puro alinhado aos 60/120/144Hz do monitor
+        let isBatchScheduled = false;
+        function scheduleFastUpdate() {
+            if (isBatchScheduled) return;
+            isBatchScheduled = true;
+            requestAnimationFrame(() => {
+                isBatchScheduled = false;
                 runPeriodicChecks();
-            }, 1);
+            });
+        }
+
+        const observer = new MutationObserver(() => {
+            scheduleFastUpdate();
         });
 
         observer.observe(document.body || document.documentElement, {
@@ -2329,6 +2613,11 @@
             subtree: true,
             characterData: true
         });
+
+        // Intervalo leve de redundância a cada 500ms caso o observer esteja ocioso
+        setInterval(() => {
+            scheduleFastUpdate();
+        }, 500);
     }
 
     if (document.readyState === 'loading') {

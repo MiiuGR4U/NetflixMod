@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Netflix Mod - Auto Updater (Live Loader)
+// @name         Netflix Enhanced - Auto Updater (Live Loader)
 // @namespace    https://github.com/MiiuGR4U/NetflixMod
-// @version      1.0.0
-// @description  Mantém o Netflix Mod atualizado automaticamente direto do GitHub sem precisar reinstalar nada no Tampermonkey.
+// @version      1.1.0
+// @description  Mantém o Netflix Enhanced atualizado automaticamente direto do GitHub sem precisar reinstalar nada no Tampermonkey.
 // @author       MiiuGR4U
 // @match        *://*.netflix.com/*
 // @run-at       document-start
