@@ -1,0 +1,8 @@
+# IDE & Agent Config
+.agents/
+.vscode/
+
+# Temp & duplicates
+NETFLIXeditor
+*.pyc
+__pycache__/
