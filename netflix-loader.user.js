@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhanced - Auto Updater (Live Loader)
 // @namespace    https://github.com/MiiuGR4U/NetflixMod
-// @version      19.0.0
+// @version      19.1.0
 // @description  Mantém o Netflix Enhanced atualizado automaticamente direto do GitHub sem precisar reinstalar nada no Tampermonkey.
 // @author       MiiuGR4U
 // @match        *://*.netflix.com/*
@@ -23,7 +23,7 @@
     const CACHE_KEY = 'NETFLIX_MOD_CACHED_PAYLOAD';
     const CACHE_TIME_KEY = 'NETFLIX_MOD_LAST_CHECK';
 
-    console.log('[Netflix Enhanced Loader] Iniciando auto-updater v19.0.0...');
+    console.log('[Netflix Enhanced Loader] Iniciando auto-updater v19.1.0...');
 
     function extractVersion(code) {
         if (!code || typeof code !== 'string') return '0.0';
@@ -31,41 +31,55 @@
         return match ? match[1].trim() : '0.0';
     }
 
+    function getOverlayHost() {
+        const fsEl = document.fullscreenElement ||
+                     document.webkitFullscreenElement ||
+                     document.mozFullScreenElement ||
+                     document.msFullscreenElement;
+        if (fsEl) {
+            if (fsEl.tagName === 'VIDEO' && fsEl.parentElement) return fsEl.parentElement;
+            return fsEl;
+        }
+        return document.querySelector('.watch-video') || document.body || document.documentElement;
+    }
+
     function showLoaderNotification(message, icon = '🚀', autoDismiss = 3500) {
         const render = () => {
             let toast = document.getElementById('nfb-loader-toast');
+            const container = getOverlayHost();
             if (!toast) {
                 toast = document.createElement('div');
                 toast.id = 'nfb-loader-toast';
                 toast.style.cssText = [
-                    'position: fixed',
-                    'top: 24px',
-                    'right: 24px',
-                    'z-index: 2147483647',
-                    'background: rgba(13, 17, 23, 0.94)',
-                    'border: 1px solid #0084ff',
-                    'color: #ffffff',
-                    'padding: 12px 20px',
-                    'border-radius: 12px',
-                    'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    'font-size: 13px',
-                    'font-weight: 600',
-                    'box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 132, 255, 0.35)',
-                    'display: flex',
-                    'align-items: center',
-                    'gap: 10px',
-                    'backdrop-filter: blur(14px)',
-                    'transition: opacity 0.3s ease, transform 0.3s ease',
-                    'transform: translateY(-8px)',
-                    'opacity: 0',
-                    'pointer-events: none'
+                    'position: fixed !important',
+                    'top: 24px !important',
+                    'right: 24px !important',
+                    'z-index: 2147483647 !important',
+                    'background: rgba(13, 17, 23, 0.94) !important',
+                    'border: 1px solid #0084ff !important',
+                    'color: #ffffff !important',
+                    'padding: 12px 20px !important',
+                    'border-radius: 12px !important',
+                    'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important',
+                    'font-size: 13px !important',
+                    'font-weight: 600 !important',
+                    'box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 132, 255, 0.35) !important',
+                    'display: flex !important',
+                    'align-items: center !important',
+                    'gap: 10px !important',
+                    'backdrop-filter: blur(14px) !important',
+                    'transition: opacity 0.3s ease, transform 0.3s ease !important',
+                    'transform: translateY(-8px) !important',
+                    'opacity: 0 !important',
+                    'pointer-events: none !important'
                 ].join(';');
-                const container = document.body || document.documentElement;
                 if (container) container.appendChild(toast);
                 requestAnimationFrame(() => {
                     toast.style.transform = 'translateY(0)';
                     toast.style.opacity = '1';
                 });
+            } else if (toast.parentNode !== container && container) {
+                container.appendChild(toast);
             }
             toast.innerHTML = `<span style="font-size: 16px;">${icon}</span> <span>${message}</span>`;
             if (autoDismiss > 0) {

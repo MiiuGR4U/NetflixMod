@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhanced
 // @namespace    https://github.com/MiiuGR4U/NetflixMod
-// @version      19.0
+// @version      19.1
 // @description  Suíte completa para Netflix: Picture-in-Picture, Filtros de Vídeo, Atalhos de Teclado, Pular Abertura/Resumo/Créditos, Volume horizontal, Playback persistente e Nomes reais dos episódios com Zero Delay.
 // @author       MiiuGR4U
 // @match        *://*.netflix.com/*
@@ -188,28 +188,28 @@
 
             /* --- HUD TOAST RÁPIDO PARA ATALHOS --- */
             #nfb-quick-hud {
-                position: fixed;
-                top: 80px;
-                right: 40px;
-                background: rgba(15, 20, 30, 0.88);
-                backdrop-filter: blur(8px);
-                color: #ffffff;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                font-size: 17px;
-                font-weight: 700;
-                padding: 10px 22px;
-                border-radius: 8px;
-                border: 1px solid var(--nfb-primary);
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5), var(--nfb-glow);
-                z-index: 2147483647;
-                pointer-events: none;
-                opacity: 0;
-                transform: translateY(-8px);
-                transition: opacity 0.18s ease, transform 0.18s ease;
+                position: fixed !important;
+                top: 75px !important;
+                right: 24px !important;
+                background: rgba(14, 18, 27, 0.94) !important;
+                backdrop-filter: blur(14px) !important;
+                color: #ffffff !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+                padding: 10px 20px !important;
+                border-radius: 12px !important;
+                border: 1px solid var(--nfb-primary) !important;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.65), var(--nfb-glow) !important;
+                z-index: 2147483647 !important;
+                pointer-events: none !important;
+                opacity: 0 !important;
+                transform: translateY(-8px) !important;
+                transition: opacity 0.18s ease, transform 0.18s ease !important;
             }
             #nfb-quick-hud.nfb-hud-visible {
-                opacity: 1;
-                transform: translateY(0);
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .nfb-filter-range {
@@ -741,14 +741,14 @@
             #nfb-save:active { transform: translateY(0); }
             
             #nfb-toggle-btn {
-                position: fixed; top: 22px; right: 24px; z-index: 2147483647;
-                background: rgba(14, 18, 27, 0.85); backdrop-filter: blur(12px);
-                border: 1px solid rgba(255, 255, 255, 0.16); color: #fff;
-                width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px;
-                opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 4px 18px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+                position: fixed !important; top: 22px !important; right: 24px !important; z-index: 2147483647 !important;
+                background: rgba(14, 18, 27, 0.85) !important; backdrop-filter: blur(12px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.16) !important; color: #fff !important;
+                width: 44px !important; height: 44px !important; border-radius: 50% !important; cursor: pointer !important; font-size: 20px !important;
+                opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                box-shadow: 0 4px 18px rgba(0,0,0,0.5) !important; display: flex !important; align-items: center !important; justify-content: center !important;
             }
-            #nfb-toggle-btn:hover { opacity: 1 !important; transform: scale(1.08); border-color: var(--nfb-primary); box-shadow: var(--nfb-glow); }
+            #nfb-toggle-btn:hover { opacity: 1 !important; transform: scale(1.08) !important; border-color: var(--nfb-primary) !important; box-shadow: var(--nfb-glow) !important; }
             
             .nfb-stretch-btn, #nfb-pip-action {
                 background: transparent; border: none; color: white; cursor: pointer;
@@ -762,6 +762,26 @@
             .nfb-tab-scroll::-webkit-scrollbar { width: 5px; }
             .nfb-tab-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); border-radius: 4px; }
             .nfb-tab-scroll::-webkit-scrollbar-thumb { background: var(--nfb-primary); border-radius: 4px; }
+
+            /* --- REGRAS DE TELA CHEIA (HTML5 FULLSCREEN API) --- */
+            :fullscreen #nfb-toggle-btn,
+            :-webkit-full-screen #nfb-toggle-btn,
+            :-moz-full-screen #nfb-toggle-btn,
+            .watch-video #nfb-toggle-btn {
+                position: fixed !important; top: 22px !important; right: 24px !important; z-index: 2147483647 !important;
+            }
+            :fullscreen #nfb-panel,
+            :-webkit-full-screen #nfb-panel,
+            :-moz-full-screen #nfb-panel,
+            .watch-video #nfb-panel {
+                position: fixed !important; top: 50% !important; left: 50% !important; z-index: 2147483647 !important;
+            }
+            :fullscreen #nfb-quick-hud,
+            :-webkit-full-screen #nfb-quick-hud,
+            :-moz-full-screen #nfb-quick-hud,
+            .watch-video #nfb-quick-hud {
+                position: fixed !important; top: 75px !important; right: 24px !important; z-index: 2147483647 !important;
+            }
         `;
         styleEl.textContent = css;
     }
@@ -1245,14 +1265,51 @@
         });
     }
 
+    // ==========================================
+    // 4f. GESTOR DE OVERLAYS PARA TELA CHEIA (FULLSCREEN HOST)
+    // ==========================================
+    function getOverlayContainer() {
+        const fsEl = document.fullscreenElement ||
+                     document.webkitFullscreenElement ||
+                     document.mozFullScreenElement ||
+                     document.msFullscreenElement;
+        if (fsEl) {
+            if (fsEl.tagName === 'VIDEO' && fsEl.parentElement) {
+                return fsEl.parentElement;
+            }
+            return fsEl;
+        }
+        return document.querySelector('.watch-video') || document.body || document.documentElement;
+    }
+
+    function syncOverlayContainers() {
+        const host = getOverlayContainer();
+        const btn = document.getElementById('nfb-toggle-btn');
+        const panel = document.getElementById('nfb-panel');
+        const hud = document.getElementById('nfb-quick-hud');
+
+        if (btn && btn.parentNode !== host) {
+            host.appendChild(btn);
+        }
+        if (panel && panel.parentNode !== host) {
+            host.appendChild(panel);
+        }
+        if (hud && hud.parentNode !== host) {
+            host.appendChild(hud);
+        }
+    }
+
     let hudTimer = null;
     function showQuickHud(msg) {
         if (!appConfig.features.enableHudToasts) return;
+        const host = getOverlayContainer();
         let hud = document.getElementById('nfb-quick-hud');
         if (!hud) {
             hud = document.createElement('div');
             hud.id = 'nfb-quick-hud';
-            document.documentElement.appendChild(hud);
+            host.appendChild(hud);
+        } else if (hud.parentNode !== host) {
+            host.appendChild(hud);
         }
         hud.textContent = msg;
         hud.classList.add('nfb-hud-visible');
@@ -2425,36 +2482,66 @@
     // 5. PAINEL DE CONTROLE UI
     // ==========================================
     function initFloatingUI() {
-        if (document.getElementById('nfb-panel')) return;
-        const btn = document.createElement('button');
-        btn.id = 'nfb-toggle-btn';
-        btn.innerHTML = '⚙️';
-        btn.onclick = () => document.getElementById('nfb-panel').classList.toggle('active');
-        document.documentElement.appendChild(btn);
+        const host = getOverlayContainer();
 
-        let hideTimeout;
-        document.addEventListener('mousemove', () => {
-            const panel = document.getElementById('nfb-panel');
-            if (panel && panel.classList.contains('active')) {
-                btn.style.opacity = '1';
-                return;
-            }
-            btn.style.opacity = '0.5';
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => {
-                if (panel && !panel.classList.contains('active') && !btn.matches(':hover')) {
-                    btn.style.opacity = '0';
+        let btn = document.getElementById('nfb-toggle-btn');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = 'nfb-toggle-btn';
+            btn.innerHTML = '⚙️';
+            btn.title = 'Netflix Enhanced - Configurações';
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                document.getElementById('nfb-panel')?.classList.toggle('active');
+            };
+            btn.onmousedown = (e) => e.stopPropagation();
+            btn.onmouseup = (e) => e.stopPropagation();
+            host.appendChild(btn);
+        } else if (btn.parentNode !== host) {
+            host.appendChild(btn);
+        }
+
+        if (!window._nfbMouseMoveBound) {
+            window._nfbMouseMoveBound = true;
+            let hideTimeout;
+            const onMouseMove = () => {
+                const b = document.getElementById('nfb-toggle-btn');
+                const p = document.getElementById('nfb-panel');
+                if (!b) return;
+                if (p && p.classList.contains('active')) {
+                    b.style.opacity = '1';
+                    return;
                 }
-            }, 2500);
-        });
+                b.style.opacity = '0.5';
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    if (p && !p.classList.contains('active') && !b.matches(':hover')) {
+                        b.style.opacity = '0';
+                    }
+                }, 2500);
+            };
+            window.addEventListener('mousemove', onMouseMove, true);
+            document.addEventListener('mousemove', onMouseMove, true);
+        }
 
-        const panel = document.createElement('div');
+        let panel = document.getElementById('nfb-panel');
+        if (panel) {
+            if (panel.parentNode !== host) host.appendChild(panel);
+            return;
+        }
+
+        panel = document.createElement('div');
         panel.id = 'nfb-panel';
+        panel.onclick = (e) => e.stopPropagation();
+        panel.onmousedown = (e) => e.stopPropagation();
+        panel.onmouseup = (e) => e.stopPropagation();
+        panel.onkeydown = (e) => e.stopPropagation();
         panel.innerHTML = `
             <div class="nfb-header">
                 <div class="nfb-title-wrap">
                     <h2 class="nfb-title">✨ ${appConfig.texts.panelTitle}</h2>
-                    <span class="nfb-badge">v19.0</span>
+                    <span class="nfb-badge">v19.1</span>
                 </div>
                 <button class="nfb-close-btn" id="nfb-close-btn" title="Fechar">✕</button>
             </div>
@@ -2548,7 +2635,7 @@
             <button id="nfb-save">${appConfig.texts.saveBtn}</button>
             <button id="nfb-sync-github" style="width: 100%; margin-top: 8px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 7px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.color='#fff';this.style.borderColor='var(--nfb-primary)'" onmouseout="this.style.color='rgba(255,255,255,0.7)';this.style.borderColor='rgba(255,255,255,0.12)'">🔄 Sincronizar com GitHub / Forçar Atualização</button>
         `;
-        document.documentElement.appendChild(panel);
+        host.appendChild(panel);
 
         // Botão de fechar rápido
         const closeBtn = panel.querySelector('#nfb-close-btn');
@@ -2676,7 +2763,7 @@
                 if (typeof unsafeWindow !== 'undefined' && unsafeWindow.__updateNetflixEnhanced) {
                     unsafeWindow.__updateNetflixEnhanced(true);
                 } else {
-                    showToast('🔄 Cache limpo! Recarregando página...');
+                    showQuickHud('🔄 Cache limpo! Recarregando página...');
                     setTimeout(() => location.reload(), 800);
                 }
             };
@@ -2751,6 +2838,8 @@
         applyVideoFilters();
 
         function runPeriodicChecks() {
+            initFloatingUI();
+            syncOverlayContainers();
             tryInjectVolumeSlider();
             tryInjectStretchButton();
             tryInjectSpeedButton();
@@ -2763,6 +2852,11 @@
             applyPlaybackRate();
             applyVideoFilters();
         }
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, syncOverlayContainers, true);
+            window.addEventListener(evt, syncOverlayContainers, true);
+        });
 
         // Neutralizador de overlays throttled a cada 1.5s para evitar reflows constantes
         setInterval(() => {
