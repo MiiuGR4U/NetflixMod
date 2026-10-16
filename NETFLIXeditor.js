@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhanced
 // @namespace    https://github.com/MiiuGR4U/NetflixMod
-// @version      19.1
+// @version      19.1.1
 // @description  Suíte completa para Netflix: Picture-in-Picture, Filtros de Vídeo, Atalhos de Teclado, Pular Abertura/Resumo/Créditos, Volume horizontal, Playback persistente e Nomes reais dos episódios com Zero Delay.
 // @author       MiiuGR4U
 // @match        *://*.netflix.com/*
@@ -955,6 +955,102 @@
     // ==========================================
     // 3e. AJUSTE GLOBAL DE VOLUME VIA SCROLL DO MOUSE
     // ==========================================
+    function shouldIgnoreVolumeWheel(target) {
+        if (!target) return true;
+
+        // 1. Elementos próprios do Netflix Enhanced que possuem interação própria
+        if (target.id === 'nfb-speed-action' || target.closest('#nfb-speed-action, #nfb-panel, #nfb-custom-volume, #nfb-loader-toast')) {
+            return true;
+        }
+
+        // 2. Elementos de formulário e digitação
+        if (target.closest('input, textarea, select')) {
+            return true;
+        }
+
+        // 3. Seletores diretos da Netflix para catálogo, episódios, temporadas, áudio/legendas, drawers e modais
+        const ignoredSelectors = [
+            '[data-uia*="episode"]',
+            '[data-uia*="season"]',
+            '[data-uia*="selector"]',
+            '[data-uia*="drawer"]',
+            '[data-uia*="dialog"]',
+            '[data-uia*="menu"]',
+            '[data-uia*="audio-subtitle"]',
+            '[data-uia*="track-list"]',
+            '[data-uia*="title-card"]',
+            '[data-uia*="titleCard"]',
+            '.episodes-pane',
+            '.episode-list',
+            '.episodes-container',
+            '.episode-container',
+            '.titleCard-container',
+            '.titleCardList--container',
+            '.titleCard--container',
+            '.titleCard',
+            '.titleCard-synopsis',
+            '.titleCard-title_text',
+            '.season-selector',
+            '.audio-subtitles-pane',
+            '.track-list',
+            '.track-list-item',
+            '.watch-video--bottom-drawer-container',
+            '.watch-video--episodes-drawer',
+            '.watch-video--drawer',
+            '.watch-video--bottom-drawer',
+            '.watch-video--selector',
+            '[role="dialog"]',
+            '[role="menu"]',
+            '[role="listbox"]',
+            '[role="tabpanel"]',
+            '[role="list"]',
+            '[aria-modal="true"]',
+            '.slider',
+            '.sliderContent',
+            '.slider-item'
+        ].join(', ');
+
+        try {
+            if (target.closest(ignoredSelectors)) {
+                return true;
+            }
+        } catch (_) {}
+
+        // 4. Varredura nos ancestrais até o root do player para detectar:
+        //    a) Classes ou atributos vinculados a episódios, catálogo, temporadas ou drawer
+        //    b) Qualquer elemento que possua rolagem ativa própria (overflow auto/scroll com conteúdo maior)
+        let el = target;
+        const keywordRegex = /episode|season|drawer|catalog|titlecard|slider|list-item|pane|selector/i;
+
+        while (el && el !== document.body && el !== document.documentElement && !el.classList?.contains('watch-video')) {
+            if (typeof el.className === 'string' && keywordRegex.test(el.className)) {
+                return true;
+            }
+
+            if (el.getAttribute) {
+                const uia = el.getAttribute('data-uia');
+                if (uia && keywordRegex.test(uia)) return true;
+                const role = el.getAttribute('role');
+                if (role && (role === 'dialog' || role === 'menu' || role === 'listbox' || role === 'tabpanel' || role === 'list')) return true;
+            }
+
+            try {
+                if (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) {
+                    const style = window.getComputedStyle(el);
+                    const isScrollableY = (style.overflowY === 'auto' || style.overflowY === 'scroll') && (el.scrollHeight > el.clientHeight);
+                    const isScrollableX = (style.overflowX === 'auto' || style.overflowX === 'scroll') && (el.scrollWidth > el.clientWidth);
+                    if (isScrollableY || isScrollableX) {
+                        return true;
+                    }
+                }
+            } catch (_) {}
+
+            el = el.parentElement;
+        }
+
+        return false;
+    }
+
     let globalScrollBound = false;
     function initGlobalVolumeScroll() {
         if (globalScrollBound) return;
@@ -963,18 +1059,8 @@
         window.addEventListener('wheel', (e) => {
             if (!appConfig.features.enableGlobalVolumeScroll) return;
 
-            // Ignora se estiver rolando em cima do botão de velocidade (ele tem seu próprio ajuste)
-            if (e.target && (e.target.id === 'nfb-speed-action' || e.target.closest('#nfb-speed-action'))) {
-                return;
-            }
-
-            // Ignora se estiver dentro do menu flutuante de configurações
-            if (e.target && e.target.closest('#nfb-panel')) {
-                return;
-            }
-
-            // Ignora se estiver rolando a lista/drawer de episódios da Netflix
-            if (e.target && e.target.closest('.episode-list, [data-uia="episodes-container"], .episodes-pane')) {
+            // Se o scroll estiver ocorrendo sobre o catálogo de episódios, drawers, painéis ou elementos roláveis, não intercepta
+            if (shouldIgnoreVolumeWheel(e.target)) {
                 return;
             }
 

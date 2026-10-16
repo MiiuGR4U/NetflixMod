@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Netflix Enhanced - Auto Updater (Live Loader)
 // @namespace    https://github.com/MiiuGR4U/NetflixMod
-// @version      19.1.0
+// @version      19.1.1
 // @description  Mantém o Netflix Enhanced atualizado automaticamente direto do GitHub sem precisar reinstalar nada no Tampermonkey.
 // @author       MiiuGR4U
 // @match        *://*.netflix.com/*
@@ -23,7 +23,7 @@
     const CACHE_KEY = 'NETFLIX_MOD_CACHED_PAYLOAD';
     const CACHE_TIME_KEY = 'NETFLIX_MOD_LAST_CHECK';
 
-    console.log('[Netflix Enhanced Loader] Iniciando auto-updater v19.1.0...');
+    console.log('[Netflix Enhanced Loader] Iniciando auto-updater v19.1.1...');
 
     function extractVersion(code) {
         if (!code || typeof code !== 'string') return '0.0';
